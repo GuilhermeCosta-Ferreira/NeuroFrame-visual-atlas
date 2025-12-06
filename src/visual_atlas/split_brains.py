@@ -8,6 +8,7 @@ import numpy as np
 from tqdm import tqdm
 
 from .io_utils import get_nifty_paths_from_folder
+from .normalize import normalize
 
 
 
@@ -65,6 +66,7 @@ def split_all_brains(brains_folder: str, split_axis: int = 2, output_folder: str
     for mri_path in tqdm(mri_paths, desc="Processing MRIs", disable=verbose < 2):
         mri = nib.load(mri_path)
         mri_arr = mri.get_fdata()
+        mri_arr = normalize(mri_arr)
 
         # Split the brain and mirror halves
         left_brain, right_brain = split_single_brain(mri_arr, split_axis=split_axis)
