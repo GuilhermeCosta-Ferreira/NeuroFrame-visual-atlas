@@ -1,1 +1,2 @@
 from .initialize_brains import initialize_brains_dataset
+from .global_alignment import global_alignment_registration

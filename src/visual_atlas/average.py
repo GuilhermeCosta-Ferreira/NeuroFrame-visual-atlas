@@ -11,7 +11,7 @@ from.io_utils import get_nifty_paths_from_folder
 # ================================================================
 # 1. Section: Average Volume of Nifti Files Brains
 # ================================================================
-def get_average_volume(brains_folder: str) -> float:
+def get_average_volume(brains_folder: str, **kwargs) -> float:
     """Calculate the average volume of brain MRIs from a specified folder.
 
     This function iterates through all NIfTI files within a given directory,
@@ -48,6 +48,7 @@ def get_average_volume(brains_folder: str) -> float:
     The average brain volume is 1450000.00 mm³.
     """
     
+    verbose = kwargs.get("verbose", 0)
     mri_paths = get_nifty_paths_from_folder(brains_folder)
 
     volumes = []
@@ -67,8 +68,37 @@ def get_average_volume(brains_folder: str) -> float:
 
         # Close the Nifti file
         mri, mri_arr, mri_mask = None, None, None
+        if(verbose > 0): print(f"    Processed {mri_path}: Volume = {brain_volume} mm³")
 
     # Calculate average volume
     average_volume = np.mean(volumes)
 
     return average_volume
+
+def pick_closest_to_average(brains_folder: str, average_volume: float) -> str:
+    """Pick the index of the volume closest to the average volume."""
+
+    mri_paths = get_nifty_paths_from_folder(brains_folder)
+
+    diffs = []
+    for mri_path in mri_paths:
+        # Extract the MRI data
+        mri = nib.load(mri_path)
+        mri_arr = mri.get_fdata()
+
+        # Get ingredients for volume calculation
+        mri_mask = np.where(mri_arr > 0, 1, 0)
+        voxel_size = np.round(mri.header.get_zooms(), 3)
+        voxel_volume = voxel_size[0] * voxel_size[1] * voxel_size[2]
+
+        # Calculate brain volume
+        brain_volume = np.sum(mri_mask) * voxel_volume
+        diffs.append(abs(brain_volume - average_volume))
+
+        # Close the Nifti file
+        mri, mri_arr, mri_mask = None, None, None
+
+    closest_index = np.argmin(diffs)
+    closest_brain_path = mri_paths[closest_index]
+
+    return closest_brain_path

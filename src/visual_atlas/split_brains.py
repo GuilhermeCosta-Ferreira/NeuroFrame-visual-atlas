@@ -76,28 +76,3 @@ def fill_missing_half(brain_half: np.ndarray, split_axis: int = 2) -> np.ndarray
         brain_half[:, :, middle_line:] = np.flip(brain_half[:, :, :middle_line], axis=2)
 
     return brain_half
-
-
-# ──────────────────────────────────────────────────────
-# 1.2 Subsection: Saving System for the Split Brains
-# ──────────────────────────────────────────────────────
-def save_split_brain(mri: nib.nifti1, brain_halves: tuple, input_path: str, output_folder: str) -> None:
-    """Save the split brain halves as separate NIfTI files."""
-
-    # Create NIfTI images for both halves
-    left_brain, right_brain = brain_halves
-    left_img = nib.Nifti1Image(left_brain, affine=mri.affine)
-    right_img = nib.Nifti1Image(right_brain, affine=mri.affine)
-
-    # Generate output file paths
-    base_filename = os.path.basename(input_path).replace('.nii.gz', '').replace('.nii', '')
-    left_output_path = os.path.join(output_folder, f"{base_filename}_left.nii.gz")
-    right_output_path = os.path.join(output_folder, f"{base_filename}_right.nii.gz")
-
-    # Ensure output directory exists
-    os.makedirs(output_folder, exist_ok=True)
-
-    nib.save(left_img, left_output_path)
-    nib.save(right_img, right_output_path)
-
-

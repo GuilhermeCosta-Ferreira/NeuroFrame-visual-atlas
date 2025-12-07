@@ -1,12 +1,14 @@
 # ================================================================
 # 0. Section: Imports
 # ================================================================
+import os
+
 import nibabel as nib
 from tqdm import tqdm
 
 from ..io_utils import get_nifty_paths_from_folder
 from ..normalize import normalize
-from ..split_brains import split_single_brain, save_split_brain
+from ..split_brains import split_single_brain
 from ..reference_align import reference_align_single_brain
 
 
@@ -88,3 +90,28 @@ def initialize_brains_dataset(brains_folder: str, split_axis: int = 2, output_fo
         save_split_brain(mri, (left_brain, right_brain), mri_path, output_folder)
         left_brain, right_brain, mri_arr, mri = None, None, None, None
     if verbose >= 1: print(f"✅ All brains processed and saved in: {output_folder}", flush=True)
+
+
+# ──────────────────────────────────────────────────────
+# 1.1 Subsection: Saving System for the Initialization
+# ──────────────────────────────────────────────────────
+def save_split_brain(mri: nib.nifti1, brain_halves: tuple, input_path: str, output_folder: str) -> None:
+    """Save the split brain halves as separate NIfTI files."""
+
+    # Create NIfTI images for both halves
+    left_brain, right_brain = brain_halves
+    left_img = nib.Nifti1Image(left_brain, affine=mri.affine)
+    right_img = nib.Nifti1Image(right_brain, affine=mri.affine)
+
+    # Generate output file paths
+    base_filename = os.path.basename(input_path).replace('.nii.gz', '').replace('.nii', '')
+    left_output_path = os.path.join(output_folder, f"{base_filename}_left.nii.gz")
+    right_output_path = os.path.join(output_folder, f"{base_filename}_right.nii.gz")
+
+    # Ensure output directory exists
+    os.makedirs(output_folder, exist_ok=True)
+
+    nib.save(left_img, left_output_path)
+    nib.save(right_img, right_output_path)
+
+
