@@ -210,5 +210,6 @@ __marimo__/
 .DS_Store
 
 *.nii.gz
+*.pkl
 
 verbose.txt

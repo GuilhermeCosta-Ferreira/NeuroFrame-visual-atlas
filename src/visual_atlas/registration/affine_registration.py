@@ -55,8 +55,8 @@ def affine_registration(reference_brain_path: str, moving_brain: str | np.ndarra
     reg.SetInitialTransform(initial_affine, inPlace=False)
     final_affine = reg.Execute(fixed, moving)
 
-    print("Final metric:", reg.GetMetricValue())
-    print("Optimizer stop condition:", reg.GetOptimizerStopConditionDescription())
+    #print("Final metric:", reg.GetMetricValue())
+    #print("Optimizer stop condition:", reg.GetOptimizerStopConditionDescription())
 
     # 7. Resample moving into fixed space with final affine
     resampled = sitk.Resample(

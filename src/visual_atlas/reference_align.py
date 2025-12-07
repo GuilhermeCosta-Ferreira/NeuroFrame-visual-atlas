@@ -42,7 +42,7 @@ def reference_align_single_brain(mri: np.ndarray) -> np.ndarray:
     """
     
     mri_pca = get_brain_pca_components(mri)
-    target_axes = get_reference_axis()
+    target_axes = get_reference_axis(mri_pca)
 
     # Get the rotation matrix for the axis transformation
     R = get_axis_rotation_matrix(mri_pca, target_axes)
@@ -79,11 +79,19 @@ def get_brain_pca_components(mri: np.ndarray) -> np.ndarray:
 # ──────────────────────────────────────────────────────
 # 1.2 Subsection: Reference Axes
 # ──────────────────────────────────────────────────────
-def get_reference_axis() -> np.ndarray:
+def get_reference_axis(target_axis: np.ndarray) -> np.ndarray:
     """Get the target reference axes for alignment: AP, LR, IS in matrix form."""
-    is_axis = np.array([-1, 0, 0])
-    ap_axis = np.array([0, 1, 0])
-    lr_axis = np.array([0, 0, 1])
+    is_target = target_axis[0, 2]
+    ap_target = target_axis[1, 0]
+    lr_target = target_axis[2, 1]
+
+    is_value = 1.0 if is_target >= 0 else -1.0
+    ap_value = 1.0 if ap_target >= 0 else -1.0
+    lr_value = 1.0 if lr_target >= 0 else -1.0
+
+    is_axis = np.array([is_value, 0, 0])
+    ap_axis = np.array([0, ap_value, 0])
+    lr_axis = np.array([0, 0, lr_value])
 
     target_axes = np.column_stack((ap_axis, lr_axis, is_axis))
     return target_axes

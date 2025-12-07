@@ -55,8 +55,8 @@ def rigid_registration(reference_brain_path: str, moving_brain: str | np.ndarray
 
     final_tx = reg.Execute(fixed, moving)
 
-    print("Final metric:", reg.GetMetricValue())
-    print("Optimizer stop condition:", reg.GetOptimizerStopConditionDescription())
+    #print("Final metric:", reg.GetMetricValue())
+    #print("Optimizer stop condition:", reg.GetOptimizerStopConditionDescription())
 
     # ---- resample moving into fixed space ----
     resampled = sitk.Resample(
