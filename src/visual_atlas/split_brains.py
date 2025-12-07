@@ -5,89 +5,50 @@ import os
 
 import nibabel as nib
 import numpy as np
-from tqdm import tqdm
-
-from .io_utils import get_nifty_paths_from_folder
-from .normalize import normalize
 
 
 
 # ================================================================
-# 1. Section: Split all brains
+# 1. Section: Brain Splitting and Mirroring
 # ================================================================
-def split_all_brains(brains_folder: str, split_axis: int = 2, output_folder: str = 'output/split_brains/', **kwargs) -> None:
-    """Processes a folder of NIfTI brain scans, splitting each into two halves.
-
-    This function iterates through all NIfTI files found in the specified `brains_folder`.
-    For each file, it loads the MRI data, splits it into two halves (e.g., left and
-    right hemispheres) along the given `split_axis`, and saves these halves as new
-    NIfTI files in the `output_folder`.
+def split_single_brain(mri: np.ndarray, split_axis: int = 2) -> tuple:
+    """Splits a 3D MRI brain scan into two separate, symmetrical brain volumes.
+    
+    This function divides a brain MRI array along a specified axis into left and
+    right hemispheres. Each hemisphere is then completed by mirroring its data
+    to create a full, symmetrical brain volume. The right hemisphere is flipped
+    to match the orientation of the left.
 
     Parameters
     ----------
-    brains_folder : str
-        The path to the directory containing the NIfTI brain scans (.nii or .nii.gz)
-        to be processed.
+    mri : np.ndarray
+        The 3D numpy array representing the brain MRI scan.
     split_axis : int, optional
-        The axis along which to split the 3D brain volume. Default is 2, which
-        typically corresponds to the sagittal axis for splitting into left and
-        right hemispheres.
-    output_folder : str, optional
-        The path to the directory where the resulting split brain files will be
-        saved. Default is 'output/split_brains/'.
-    **kwargs : dict
-        Optional keyword arguments:
-        - verbose : int, optional
-            Controls the verbosity of the output.
-            - 0: No output.
-            - 1: Prints a final completion message.
-            - 2: Displays a progress bar during processing.
-            Default is 2.
+        The axis along which to split the brain, by default 2. This is
+        typically the sagittal axis.
 
     Returns
     -------
-    None
-        This function does not return any value. It saves the processed files
-        to disk.
+    tuple
+        A tuple containing two numpy arrays:
+        - left_brain (np.ndarray): The reconstructed full brain based on the
+          left hemisphere.
+        - right_brain (np.ndarray): The reconstructed full brain based on the
+          right hemisphere, flipped to match the left's orientation.
 
     Notes
     -----
-    - The function relies on `get_nifty_paths_from_folder` to find the input files,
-      `split_single_brain` to perform the splitting logic, and `save_split_brain`
-      to handle file saving.
-    - Memory is managed by clearing variables within the loop to handle large
-      datasets.
+    - This function relies on a helper function `fill_missing_half` to
+      complete the hemispheres by mirroring.
+    - The right hemisphere is flipped along the `split_axis` so that both
+      output brains have a consistent orientation (e.g., both are "left-like").
     """
     
-    verbose = kwargs.get('verbose', 2)
-
-    mri_paths = get_nifty_paths_from_folder(brains_folder)
-
-    for mri_path in tqdm(mri_paths, desc="Processing MRIs", disable=verbose < 2):
-        mri = nib.load(mri_path)
-        mri_arr = mri.get_fdata()
-        mri_arr = normalize(mri_arr)
-
-        # Split the brain and mirror halves
-        left_brain, right_brain = split_single_brain(mri_arr, split_axis=split_axis)
-
-        # Save the split brains
-        save_split_brain(mri, (left_brain, right_brain), mri_path, output_folder)
-
-        # Close the NIfTI file
-        left_brain, right_brain, mri_arr, mri = None, None, None, None
-    if verbose >= 1: print(f"✅ All brains processed and saved in: {output_folder}", flush=True)
-
-        
-# ──────────────────────────────────────────────────────
-# 1.1 Subsection: Individual Brain Splitting
-# ──────────────────────────────────────────────────────
-def split_single_brain(mri: np.ndarray, split_axis: int = 2) -> tuple:
-    """Split the brains and mirror them along the mid-sagittal plane."""
-
+    # Get the middle line index along the split axis
     middle_line = mri.shape[split_axis] // 2
     mri_split_indices = np.indices(mri.shape)[split_axis]
 
+    # Split the brain into left and right halves (right half will be flipped)
     left_brain = np.where(mri_split_indices < middle_line, mri, 0)
     right_brain = np.where(mri_split_indices >= middle_line, mri, 0)
     right_brain = np.flip(right_brain, axis=split_axis)
@@ -96,12 +57,11 @@ def split_single_brain(mri: np.ndarray, split_axis: int = 2) -> tuple:
     left_brain = fill_missing_half(left_brain, split_axis)
     right_brain = fill_missing_half(right_brain, split_axis)
     
-
     return left_brain, right_brain
 
 
 # ──────────────────────────────────────────────────────
-# 1.2 Subsection: Fill Missing Half
+# 1.1 Subsection: Fill Missing Half
 # ──────────────────────────────────────────────────────
 def fill_missing_half(brain_half: np.ndarray, split_axis: int = 2) -> np.ndarray:
     """Fill in the missing half of a brain by mirroring the existing half."""
@@ -119,7 +79,7 @@ def fill_missing_half(brain_half: np.ndarray, split_axis: int = 2) -> np.ndarray
 
 
 # ──────────────────────────────────────────────────────
-# 1.3 Subsection: Saving System for the Split Brains
+# 1.2 Subsection: Saving System for the Split Brains
 # ──────────────────────────────────────────────────────
 def save_split_brain(mri: nib.nifti1, brain_halves: tuple, input_path: str, output_folder: str) -> None:
     """Save the split brain halves as separate NIfTI files."""

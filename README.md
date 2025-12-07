@@ -4,5 +4,6 @@ This repo contains all the code needed to generate an average MRI brain for the 
 
 The pipeline goes:
 
-1. Split the brains and mirror them
-2. Normalization
+1. Normalization
+2. Centering and Alignement with main axis (PCA-based)
+3. Split the brains and mirror them
